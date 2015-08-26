@@ -31,11 +31,9 @@ String message;
 uint8_t address;
 
 //************************************************************ SETUP ********************************************************//
-
 void setup() {                
   // initialize the digital pin as an output.
   Serial.begin(9600); 
-  //Serial.print("hello world\n");
 
   //reset chip
   pinMode(pin_RESETN, OUTPUT);
@@ -77,77 +75,10 @@ void setup() {
       //Reset TX FIFO
       cmd_str(SFTX, 1);             //SFTX                  flush TX FIFO
   //********** END CONFIGURE CHIP**********//
-  
-  
+      
+      reg_setting();
   
    //**************SET UP TX****************//
-  //NOTE: This is based on SmartRF settings
-  // 1. Open the device in smartRF
-  // 2. 'Register Reset'
-  // 3. High performance mode
-  // 4. The regs should match below 
- 
- 
-  //high performance settings
-  reg_write2F(0x12, 0x00);          //FS_DIG1: 0x00         Frequency Synthesizer Digital Reg. 1
-  reg_write2F(0x13, 0x5F);          //FS_DIG0: 0x5F         Frequency Synthesizer Digital Reg. 0
-  reg_write2F(0x16, 0x40);          //FS_CAL1: 0x40         Frequency Synthesizer Calibration Reg. 1
-  reg_write2F(0x17, 0x0E);          //FS_CAL0: 0x0E         Frequency Synthesizer Calibration Reg. 0
-  reg_write2F(0x19, 0x03);          //FS_DIVTWO: 0x03       Frequency Synthesizer Divide by 2
-  reg_write2F(0x1B, 0x33);          //FS_DSM0: 0x33         FS Digital Synthesizer Module Configuration Reg. 0
-  reg_write2F(0x1D, 0x17);          //FS_DVCO: 0x17         Frequency Synthesizer Divider Chain Configuration ..
-  reg_write2F(0x1F, 0x50);          //FS_PFD: 0x50          Frequency Synthesizer Phase Frequency Detector Con..
-  reg_write2F(0x20, 0x6E);          //FS_PRE: 0x6E          Frequency Synthesizer Prescaler Configuration
-  reg_write2F(0x21, 0x14);          //FS_REG_DIV_CML: 0x14  Frequency Synthesizer Divider Regulator Configurat..
-  reg_write2F(0x22, 0xAC);          //FS_SPARE: 0xAC        Set up Frequency Synthesizer Spare
-  reg_write2F(0x27, 0xB4);          //FS_VCO0: 0xB4         FS Voltage Controlled Oscillator Configuration Reg..
-  reg_write2F(0x32, 0x0E);          //XOSC5: 0x0E           Crystal Oscillator Configuration Reg. 5
-  reg_write2F(0x36, 0x03);          //XOSC1: 0x03           Crystal Oscillator Configuration Reg. 0
-  
-  //modulation and freq deviation settings
-  reg_write(0x0A, B01001000);       //DEVIATION_M: 0x48      set DEV_M to 72 which sets freq deviation to 20.019531kHz (with DEV_M=5)
-  reg_write(0x0B, B00000101);       //MODCFG_DEV_E: 0x05     set up modulation mode and DEV_E to 5 (see DEV_M register)
-  reg_write(0x21, B00000100);       //FS_CFG: B00010100      set up LO divider to 8 (410.0 - 480.0 MHz band), out of lock detector disabled
-  
-  //set preamble
-  reg_write(0x0D, 0x00);            //PREAMBLE_CFG1: 0x00    No preamble
-  reg_write_bit(0x0E, 5, 0);        //PQT_EN: 0x00           Preamble detection disabled
-  
-  //TOC_LIMIT
-  reg_write_bit2F(0x02, 7, 0);        //TOC_LIMIT: 0x00      Using the low tolerance setting (TOC_LIMIT = 0) greatly reduces system settling times and system power consumption as no preamble bits are needed for bit synchronization or frequency offset compensation (4 bits preamble needed for AGC settling).
-  reg_write_bit2F(0x02, 6, 0);        //TOC_LIMIT: 0x00      Using the low tolerance setting (TOC_LIMIT = 0) greatly reduces system settling times and system power consumption as no preamble bits are needed for bit synchronization or frequency offset compensation (4 bits preamble needed for AGC settling).
-  
-  //set SYNC word
-  reg_write_bit(0x08, 6, 0);        //PQT_GATING_EN: 0       PQT gating disabled (preamble not required)
-  reg_write(0x09, B00010111);       //SYNC_CFG0: B00010111   32 bit SYNC word. Bit error qualifier disabled. No check on bit errors
-  reg_write(0x04, 0x93);            //SYNC3: 0x93            Set SYNC word bits 31:24
-  reg_write(0x05, 0x0B);            //SYNC2: 0x0B            Set SYNC word bits 23:16
-  reg_write(0x06, 0x51);            //SYNC1: 0x51            Set SYNC word bits 15:8
-  reg_write(0x07, 0xDE);            //SYNC0: 0xDE            Set SYNC word bits 7:0
-  
-  //set packets
-  reg_write_bit(0x12, 6, 1);        //FIFO_EN: 0             FIFO enable set to true
-  reg_write_bit(0x13, 6, 0);        //TRANSPARENT_MODE_EN: 0 Disable transparent mode
-  reg_write(0x26, 0x00);            //PKT_CFG2: 0x00         set FIFO mode
-  reg_write(0x27, B00110000);       //PKT_CFG1: 0x30         set address check and 0xFF broadcast
-  reg_write(0x28, B00100000);       //PKT_CFG0: 0x30         set variable packet length
-  reg_write(0x2E, 0x7F);            //PKT_LEN: 0xFF          set packet max packet length to 0x7F
-  reg_write(0x1F, DEVICE_ADDRESS);  //DEV_ADDR register is set to DEVICE_ADDRESS
-  reg_write(0x29, B01001111);       //RFEND_CFG1: 0x80       go to TX after a good packet
-  reg_write(0x2A, B00110000);       //RFEND_CFG0: 0x30       go to RX after transmitting a packet
-  
-  //set power level
-  reg_write(0x2B, B01111111);       //PA_CFG2: 0x7F          set POWER_RAMP to 64 (output power to 14.5dBm, equation 21)
-  
-  //frequency offset setting
-  reg_write2F(0x0A, 0);             //FREQOFF1: 0x00         set frequency offset to 0
-  reg_write2F(0x0B, 0);             //FREQOFF0: 0x00
-  
-  //Frequency setting
-  reg_write2F(0x0C, 0x6C);          //FREQ2: 0x6C            set frequency to 434MHz (sets Vco, see equation from FREQ2 section of user guide)
-  reg_write2F(0x0D, 0x80);          //FREQ1: 0x80
-  reg_write2F(0x0E, 0x00);          //FREQ0: 0x00
-
   
   //************************************************************ MAIN PROGRAM *****************************************************//
    //turn on green LED when main code starts running
@@ -296,7 +227,6 @@ byte reg_read2F(byte addr){
 
 //write to register address addr with data
 byte reg_write(byte addr, byte data){
-  
     SPI.transfer(addr); //send desired address
     return SPI.transfer(data); //send desired address}
   
@@ -475,6 +405,7 @@ void usr_serial_cmd(){
       cmd_str(SRES, 1);
       cmd_str(SFTX, 1); // flush TX FIFO
       cmd_str(SFRX, 1); // flush RX FIFO
+      reg_setting(); // setup register setting
       // Reset FIFO registers
       reg_write2F(TXFIRST, 0x00);
       // Put the ACK Packet in the FIFO
@@ -563,6 +494,75 @@ void reg_write_bit2F(int reg, int n, int data){
   int new_value = old_value-(old_value%(power)) + data*power + old_value%power;
   reg_write2F(reg, new_value);
   return;
+}
+
+// setup register settings
+void reg_setting(){
+   //NOTE: This is based on SmartRF settings
+  // 1. Open the device in smartRF
+  // 2. 'Register Reset'
+  // 3. High performance mode
+  // 4. The regs should match below 
+
+  //high performance settings
+  reg_write2F(0x12, 0x00);          //FS_DIG1: 0x00         Frequency Synthesizer Digital Reg. 1
+  reg_write2F(0x13, 0x5F);          //FS_DIG0: 0x5F         Frequency Synthesizer Digital Reg. 0
+  reg_write2F(0x16, 0x40);          //FS_CAL1: 0x40         Frequency Synthesizer Calibration Reg. 1
+  reg_write2F(0x17, 0x0E);          //FS_CAL0: 0x0E         Frequency Synthesizer Calibration Reg. 0
+  reg_write2F(0x19, 0x03);          //FS_DIVTWO: 0x03       Frequency Synthesizer Divide by 2
+  reg_write2F(0x1B, 0x33);          //FS_DSM0: 0x33         FS Digital Synthesizer Module Configuration Reg. 0
+  reg_write2F(0x1D, 0x17);          //FS_DVCO: 0x17         Frequency Synthesizer Divider Chain Configuration ..
+  reg_write2F(0x1F, 0x50);          //FS_PFD: 0x50          Frequency Synthesizer Phase Frequency Detector Con..
+  reg_write2F(0x20, 0x6E);          //FS_PRE: 0x6E          Frequency Synthesizer Prescaler Configuration
+  reg_write2F(0x21, 0x14);          //FS_REG_DIV_CML: 0x14  Frequency Synthesizer Divider Regulator Configurat..
+  reg_write2F(0x22, 0xAC);          //FS_SPARE: 0xAC        Set up Frequency Synthesizer Spare
+  reg_write2F(0x27, 0xB4);          //FS_VCO0: 0xB4         FS Voltage Controlled Oscillator Configuration Reg..
+  reg_write2F(0x32, 0x0E);          //XOSC5: 0x0E           Crystal Oscillator Configuration Reg. 5
+  reg_write2F(0x36, 0x03);          //XOSC1: 0x03           Crystal Oscillator Configuration Reg. 0
+  
+  //modulation and freq deviation settings
+  reg_write(0x0A, B01001000);       //DEVIATION_M: 0x48      set DEV_M to 72 which sets freq deviation to 20.019531kHz (with DEV_M=5)
+  reg_write(0x0B, B00000101);       //MODCFG_DEV_E: 0x05     set up modulation mode and DEV_E to 5 (see DEV_M register)
+  reg_write(0x21, B00000100);       //FS_CFG: B00010100      set up LO divider to 8 (410.0 - 480.0 MHz band), out of lock detector disabled
+  
+  //set preamble
+  reg_write(0x0D, 0x00);            //PREAMBLE_CFG1: 0x00    No preamble
+  reg_write_bit(0x0E, 5, 0);        //PQT_EN: 0x00           Preamble detection disabled
+  
+  //TOC_LIMIT
+  reg_write_bit2F(0x02, 7, 0);        //TOC_LIMIT: 0x00      Using the low tolerance setting (TOC_LIMIT = 0) greatly reduces system settling times and system power consumption as no preamble bits are needed for bit synchronization or frequency offset compensation (4 bits preamble needed for AGC settling).
+  reg_write_bit2F(0x02, 6, 0);        //TOC_LIMIT: 0x00      Using the low tolerance setting (TOC_LIMIT = 0) greatly reduces system settling times and system power consumption as no preamble bits are needed for bit synchronization or frequency offset compensation (4 bits preamble needed for AGC settling).
+  
+  //set SYNC word
+  reg_write_bit(0x08, 6, 0);        //PQT_GATING_EN: 0       PQT gating disabled (preamble not required)
+  reg_write(0x09, B00010111);       //SYNC_CFG0: B00010111   32 bit SYNC word. Bit error qualifier disabled. No check on bit errors
+  reg_write(0x04, 0x93);            //SYNC3: 0x93            Set SYNC word bits 31:24
+  reg_write(0x05, 0x0B);            //SYNC2: 0x0B            Set SYNC word bits 23:16
+  reg_write(0x06, 0x51);            //SYNC1: 0x51            Set SYNC word bits 15:8
+  reg_write(0x07, 0xDE);            //SYNC0: 0xDE            Set SYNC word bits 7:0
+  
+  //set packets
+  reg_write_bit(0x12, 6, 1);        //FIFO_EN: 0             FIFO enable set to true
+  reg_write_bit(0x13, 6, 0);        //TRANSPARENT_MODE_EN: 0 Disable transparent mode
+  reg_write(0x26, 0x00);            //PKT_CFG2: 0x00         set FIFO mode
+  reg_write(0x27, B00110000);       //PKT_CFG1: 0x30         set address check and 0xFF broadcast
+  reg_write(0x28, B00100000);       //PKT_CFG0: 0x30         set variable packet length
+  reg_write(0x2E, 0x7F);            //PKT_LEN: 0xFF          set packet max packet length to 0x7F
+  reg_write(0x1F, DEVICE_ADDRESS);  //DEV_ADDR register is set to DEVICE_ADDRESS
+  reg_write(0x29, B01001111);       //RFEND_CFG1: 0x80       go to TX after a good packet
+  reg_write(0x2A, B00110000);       //RFEND_CFG0: 0x30       go to RX after transmitting a packet
+  
+  //set power level
+  reg_write(0x2B, B01111111);       //PA_CFG2: 0x7F          set POWER_RAMP to 64 (output power to 14.5dBm, equation 21)
+  
+  //frequency offset setting
+  reg_write2F(0x0A, 0);             //FREQOFF1: 0x00         set frequency offset to 0
+  reg_write2F(0x0B, 0);             //FREQOFF0: 0x00
+  
+  //Frequency setting
+  reg_write2F(0x0C, 0x6C);          //FREQ2: 0x6C            set frequency to 434MHz (sets Vco, see equation from FREQ2 section of user guide)
+  reg_write2F(0x0D, 0x80);          //FREQ1: 0x80
+  reg_write2F(0x0E, 0x00);          //FREQ0: 0x00
 }
 
 
