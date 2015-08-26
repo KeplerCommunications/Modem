@@ -1,0 +1,15 @@
+//define command strobes
+#define SRES 0x30
+#define SFSTXON 0x31
+#define SXOFF 0x32
+#define SCAL 0x33
+#define SRX 0x34
+#define STX 0x35
+#define SIDLE 0x36
+#define SAFC 0x37
+#define SWOR 0x38
+#define SPWD 0x39
+#define SFRX 0x3A
+#define SFTX 0x3B
+#define SWORRST 0x3C
+#define SNOP 0x3D
